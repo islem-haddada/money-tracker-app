@@ -18,33 +18,39 @@ export default function StatsScreen() {
     {
       name: "Revenus",
       amount: totalIncome,
-      color: "green",
+      color: "#4caf50",
       legendFontColor: "#333",
       legendFontSize: 15,
     },
     {
       name: "Dépenses",
       amount: totalExpense,
-      color: "red",
+      color: "#f44336",
       legendFontColor: "#333",
       legendFontSize: 15,
     },
-  ];
+  ].filter(item => item.amount > 0);
 
   const screenWidth = Dimensions.get("window").width - 40;
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Statistiques</Text>
-      <PieChart
-        data={chartData}
-        width={screenWidth}
-        height={220}
-        accessor="amount"
-        backgroundColor="transparent"
-        paddingLeft="15"
-        absolute
-      />
+      {chartData.length > 0 ? (
+        <PieChart
+          data={chartData}
+          width={screenWidth}
+          height={220}
+          accessor="amount"
+          backgroundColor="transparent"
+          paddingLeft="15"
+          absolute
+        />
+      ) : (
+        <Text style={{ textAlign: "center", marginTop: 40, color: "gray" }}>
+          Aucune donnée à afficher
+        </Text>
+      )}
       <View style={styles.summary}>
         <Text style={styles.income}>💚 Total revenus: {totalIncome} DA</Text>
         <Text style={styles.expense}>❤️ Total dépenses: {totalExpense} DA</Text>
