@@ -1,98 +1,202 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import {
+  Alert,
+  Button,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import uuid from "react-native-uuid";
+import { useFinance } from "../../context/FinanceContext";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Transaction = {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  description: string;
+  date: string;
+};
+
+
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { transactions, addTransaction, deleteTransaction } = useFinance() as {
+    transactions: Transaction[];
+    addTransaction: (t: Transaction) => void;
+    deleteTransaction: (id: string) => void;
+  };
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const [amount, setAmount] = useState("");
+  const [desc, setDesc] = useState("");
+  const [type, setType] = useState<"income" | "expense">("income");
+  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+
+  const handleAdd = () => {
+    if (!amount || isNaN(Number(amount))) {
+      Alert.alert("Erreur", "Veuillez entrer un montant valide !");
+      return;
+    }
+
+    addTransaction({
+      id: String(uuid.v4()),
+      type,
+      amount: Number(amount),
+      description: desc || (type === "income" ? "Revenu" : "Dépense"),
+      date: new Date().toLocaleString(),
+    });
+
+    setAmount("");
+    setDesc("");
+  };
+
+  const filteredTransactions =
+    filter === "all"
+      ? transactions
+      : transactions.filter((t) => t.type === filter);
+
+  const balance = filteredTransactions.reduce(
+    (acc: number, t: Transaction) =>
+      t.type === "income" ? acc + t.amount : acc - t.amount,
+    0
+  );
+
+  const formatCurrency = (num: number) =>
+    new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "DZD",
+    }).format(num);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.balance}>💰 Solde: {formatCurrency(balance)}</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Montant"
+        keyboardType="numeric"
+        value={amount}
+        onChangeText={setAmount}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Description"
+        value={desc}
+        onChangeText={setDesc}
+      />
+
+      <View style={styles.row}>
+        <Button
+          title="Revenu"
+          onPress={() => setType("income")}
+          color={type === "income" ? "green" : "gray"}
+        />
+        <Button
+          title="Dépense"
+          onPress={() => setType("expense")}
+          color={type === "expense" ? "red" : "gray"}
+        />
+      </View>
+
+      <Button title="Ajouter" onPress={handleAdd} />
+
+      <View style={styles.filterRow}>
+        <Button
+          title="Tous"
+          onPress={() => setFilter("all")}
+          color={filter === "all" ? "#4caf50" : "gray"}
+        />
+        <Button
+          title="Revenus"
+          onPress={() => setFilter("income")}
+          color={filter === "income" ? "green" : "gray"}
+        />
+        <Button
+          title="Dépenses"
+          onPress={() => setFilter("expense")}
+          color={filter === "expense" ? "red" : "gray"}
+        />
+      </View>
+
+      <FlatList
+        data={[...filteredTransactions].reverse()} // plus récentes en haut
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.item,
+              item.type === "income" ? styles.income : styles.expense,
+            ]}
+          >
+            <View>
+              <Text style={styles.text}>{item.description}</Text>
+              <Text style={styles.date}>{item.date}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.amount}>
+                {item.type === "income" ? "+" : "-"} {formatCurrency(item.amount)}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert("Confirmation", "Supprimer cette transaction ?", [
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Supprimer",
+                      style: "destructive",
+                      onPress: () => deleteTransaction(item.id),
+                    },
+                  ])
+                }
+              >
+                <Text style={styles.delete}>❌</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  balance: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  row: { flexDirection: "row", alignItems: "center" },
+  filterRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 15,
   },
+  item: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  income: { backgroundColor: "#d4edda" },
+  expense: { backgroundColor: "#f8d7da" },
+  text: { fontSize: 16, fontWeight: "bold" },
+  amount: { fontSize: 16, marginLeft: 10 },
+  delete: { fontSize: 18, marginLeft: 15 },
+  date: { fontSize: 12, color: "#555", marginTop: 5 },
 });
