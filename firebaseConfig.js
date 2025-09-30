@@ -3,12 +3,12 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "TON_API_KEY",
-  authDomain: "TON_PROJECT.firebaseapp.com",
-  projectId: "TON_PROJECT_ID",
-  storageBucket: "TON_PROJECT.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID",
+  apiKey: "AIzaSyBI8QySd8lW_rsCQBaRBKVgSROfdmfKkFQ",
+  authDomain: "moneytracker-47795.firebaseapp.com",
+  projectId: "moneytracker-47795",
+  storageBucket: "moneytracker-47795.appspot.com",
+  messagingSenderId: "745518974009",
+  appId: "1:745518974009:web:7b46f370687c7551c139e8"
 };
 
 const app = initializeApp(firebaseConfig);
