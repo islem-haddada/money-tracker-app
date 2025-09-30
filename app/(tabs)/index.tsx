@@ -1,17 +1,16 @@
 import React, { useState } from "react";
 import {
-  Alert,
-  Button,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Button,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import uuid from "react-native-uuid";
 import { useFinance } from "../../context/FinanceContext";
-
 type Transaction = {
   id: string;
   type: "income" | "expense";
@@ -19,7 +18,6 @@ type Transaction = {
   description: string;
   date: string;
 };
-
 
 
 export default function HomeScreen() {

@@ -1,19 +1,15 @@
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { useFinance } from "../context/FinanceContext";
-
 export default function StatsScreen() {
   const { transactions } = useFinance();
-
   // Calcul des totaux
   const totalIncome = transactions
     .filter(t => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
-
   const totalExpense = transactions
     .filter(t => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-
   const chartData = [
     {
       name: "Revenus",

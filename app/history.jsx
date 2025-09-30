@@ -1,14 +1,10 @@
-import React from "react";
-import { View, Text, FlatList, StyleSheet, Button } from "react-native";
+import { Button, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFinance } from "../context/FinanceContext";
-
 export default function HistoryScreen() {
   const { transactions, deleteTransaction } = useFinance();
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Historique des Transactions</Text>
-
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
@@ -27,7 +23,6 @@ export default function HistoryScreen() {
           </View>
         )}
       />
-
       {transactions.length === 0 && <Text style={styles.empty}>Aucune transaction enregistrée</Text>}
     </View>
   );

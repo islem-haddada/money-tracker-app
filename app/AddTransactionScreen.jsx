@@ -1,12 +1,10 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { useState } from "react";
+import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFinance } from "../context/FinanceContext";
-
 export default function AddTransactionScreen({ navigation }) {
   const { addTransaction } = useFinance();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-
   const handleAdd = () => {
     if (!description || !amount) {
       alert("Veuillez remplir tous les champs");
@@ -17,11 +15,9 @@ export default function AddTransactionScreen({ navigation }) {
     setAmount("");
     navigation.goBack(); // retourner en arrière après ajout
   };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Ajouter une Transaction</Text>
-
       <TextInput
         style={styles.input}
         placeholder="Description"
