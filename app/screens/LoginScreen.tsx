@@ -1,10 +1,13 @@
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { useRouter } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { auth } from "../../firebaseConfig";
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -12,10 +15,9 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
     try {
-      const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
       Alert.alert("Succès", "Connexion réussie");
-      // navigation.replace("home"); // à activer selon la navigation
+      router.replace("/(tabs)/home");
     } catch (error: any) {
       Alert.alert("Erreur", error.message);
     }
@@ -42,7 +44,7 @@ export default function LoginScreen({ navigation }: any) {
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Se connecter</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation?.navigate("SignUp")}> 
+      <TouchableOpacity onPress={() => router.replace("/auth/SignUp")}> 
         <Text style={styles.link}>Créer un compte</Text>
       </TouchableOpacity>
     </View>
