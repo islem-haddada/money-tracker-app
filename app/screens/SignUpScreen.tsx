@@ -15,8 +15,8 @@ export default function SignUpScreen() {
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert("Succès", "Compte créé ! Vous êtes connecté.");
+  await createUserWithEmailAndPassword(auth, email, password);
+  Alert.alert("Succès", "Compte créé ! Vous êtes connecté.");
   router.replace("/(tabs)/home");
     } catch (error: any) {
       Alert.alert("Erreur", error.message);
@@ -44,7 +44,7 @@ export default function SignUpScreen() {
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>S'inscrire</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.replace("/auth/Login")}> 
+      <TouchableOpacity onPress={() => router.replace("/LoginScreen")}> 
         <Text style={styles.link}>Déjà un compte ? Se connecter</Text>
       </TouchableOpacity>
     </View>

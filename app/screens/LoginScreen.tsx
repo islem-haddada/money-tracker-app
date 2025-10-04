@@ -3,6 +3,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebaseConfig";
+const typedAuth: import("firebase/auth").Auth = auth;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -15,7 +16,7 @@ export default function LoginScreen() {
       return;
     }
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+          await signInWithEmailAndPassword(typedAuth as import("firebase/auth").Auth, email, password);
       Alert.alert("Succès", "Connexion réussie");
       router.replace("/(tabs)/home");
     } catch (error: any) {
@@ -44,7 +45,7 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Se connecter</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.replace("/auth/SignUp")}> 
+      <TouchableOpacity onPress={() => router.replace("/SignUpScreen")}> 
         <Text style={styles.link}>Créer un compte</Text>
       </TouchableOpacity>
     </View>
