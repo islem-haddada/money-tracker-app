@@ -9,9 +9,9 @@ import { auth } from "../../firebaseConfig";
 export default function Layout() {
   const router = useRouter();
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace("/auth/Login");
+        router.replace({ pathname: "/auth/Login" } as any);
       }
     });
     return () => unsubscribe();

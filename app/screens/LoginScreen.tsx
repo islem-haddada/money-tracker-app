@@ -1,26 +1,23 @@
 import { useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { auth } from "../../firebaseConfig";
-const typedAuth: import("firebase/auth").Auth = auth;
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
-    try {
-          await signInWithEmailAndPassword(typedAuth as import("firebase/auth").Auth, email, password);
-      Alert.alert("Succès", "Connexion réussie");
-      router.replace("/(tabs)/home");
-    } catch (error: any) {
-      Alert.alert("Erreur", error.message);
+    const ok = await login(email, password);
+    if (ok) {
+      Alert.alert("Succ\u00e8s", "Connexion r\u00e9ussie");
+      router.replace({ pathname: "/(tabs)/home" } as any);
     }
   };
 
@@ -45,8 +42,8 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Se connecter</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.replace("/SignUpScreen")}> 
-        <Text style={styles.link}>Créer un compte</Text>
+      <TouchableOpacity onPress={() => router.replace({ pathname: "/auth/SignUp" } as any)}>
+        <Text style={styles.link}>Cr\u00e9er un compte</Text>
       </TouchableOpacity>
     </View>
   );
