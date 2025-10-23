@@ -1,24 +1,13 @@
 
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs, useRouter } from "expo-router";
-import { onAuthStateChanged } from "firebase/auth";
-import { useEffect } from "react";
+import { Tabs } from "expo-router";
+import { AuthProvider } from "../../context/AuthContext";
 import { FinanceProvider } from "../../context/FinanceContext";
-import { auth } from "../../firebaseConfig";
 
 export default function Layout() {
-  const router = useRouter();
-  useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace({ pathname: "/auth/Login" } as any);
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
-
   return (
-    <FinanceProvider>
+    <AuthProvider>
+      <FinanceProvider>
       <Tabs
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -50,6 +39,7 @@ export default function Layout() {
         <Tabs.Screen name="profile" options={{ title: "Profil" }} />
         <Tabs.Screen name="settings" options={{ title: "Paramètres" }} />
       </Tabs>
-    </FinanceProvider>
+      </FinanceProvider>
+    </AuthProvider>
   );
 }

@@ -1,66 +1,144 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
+	package main
 
-	"github.com/jackc/pgx/v5"
-)
+	import (
+		"encoding/json"
+		"log"
+		"net/http"
+		"sync"
+		"time"
 
-// Chaîne de connexion PostgreSQL
-const dbURL = "postgres://money:1234@localhost:5432/moneydb"
+		"github.com/golang-jwt/jwt/v5"
+		"golang.org/x/crypto/bcrypt"
+	)
 
-func main() {
-	ctx := context.Background()
+	var jwtKey = []byte("replace-with-secure-secret")
 
-	// Connexion
-	conn, err := pgx.Connect(ctx, dbURL)
-	if err != nil {
-		log.Fatal("❌ Erreur connexion DB:", err)
+	type User struct {
+		ID       int    `json:"id"`
+		Email    string `json:"email"`
+		Password string `json:"-"`
 	}
-	defer conn.Close(ctx)
 
-	// 1. Créer un user
-	var userID int
-	err = conn.QueryRow(
-		ctx,
-		"INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
-		"Fakher", "fakher@example.com", "secret123", // ⚠️ password doit être hashé plus tard
-	).Scan(&userID)
-	if err != nil {
-		log.Fatal("❌ Erreur création user:", err)
-	}
-	fmt.Println("✅ User créé avec ID:", userID)
+	var (
+		users   = map[string]*User{} // key by email
+		usersMu sync.Mutex
+		nextID  = 1
+	)
 
-	// 2. Ajouter une transaction
-	_, err = conn.Exec(
-		ctx,
-		"INSERT INTO transactions (user_id, amount, type, description) VALUES ($1, $2, $3, $4)",
-		userID, 500.0, "income", "Salaire")
-	if err != nil {
-		log.Fatal("❌ Erreur ajout transaction:", err)
-	}
-	fmt.Println("✅ Transaction ajoutée")
-
-	// 3. Lire toutes les transactions de ce user
-	rows, err := conn.Query(ctx, "SELECT id, amount, type, description, created_at FROM transactions WHERE user_id=$1", userID)
-	if err != nil {
-		log.Fatal("❌ Erreur SELECT transactions:", err)
-	}
-	defer rows.Close()
-
-	fmt.Println("📌 Transactions de l'utilisateur", userID)
-	for rows.Next() {
-		var id int
-		var amount float64
-		var ttype, desc, createdAt string
-
-		err := rows.Scan(&id, &amount, &ttype, &desc, &createdAt)
-		if err != nil {
-			log.Fatal("❌ Erreur lecture row:", err)
+	func signupHandler(w http.ResponseWriter, r *http.Request) {
+		var body struct{
+			Email string `json:"email"`
+			Password string `json:"password"`
+			Name string `json:"name"`
 		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid", http.StatusBadRequest)
+			return
+		}
+		usersMu.Lock()
+		defer usersMu.Unlock()
+		if _, ok := users[body.Email]; ok {
+			http.Error(w, "user_exists", http.StatusBadRequest)
+			return
+		}
+		hash, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		u := &User{ID: nextID, Email: body.Email, Password: string(hash)}
+		nextID++
+		users[body.Email] = u
 
-		fmt.Printf("➡️ %d | %.2f | %s | %s | %s\n", id, amount, ttype, desc, createdAt)
+		token, err := makeToken(u.ID)
+		if err != nil {
+			http.Error(w, "token_error", http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"token": token, "user": map[string]interface{}{"id": u.ID, "email": u.Email}})
 	}
-}
+
+	func loginHandler(w http.ResponseWriter, r *http.Request) {
+		var body struct{
+			Email string `json:"email"`
+			Password string `json:"password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "invalid", http.StatusBadRequest)
+			return
+		}
+		usersMu.Lock()
+		u, ok := users[body.Email]
+		usersMu.Unlock()
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(body.Password)) != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		token, err := makeToken(u.ID)
+		if err != nil {
+			http.Error(w, "token_error", http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"token": token, "user": map[string]interface{}{"id": u.ID, "email": u.Email}})
+	}
+
+	func meHandler(w http.ResponseWriter, r *http.Request) {
+		userID, ok := authFromReq(r)
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		usersMu.Lock()
+		defer usersMu.Unlock()
+		for _, u := range users {
+			if u.ID == userID {
+				json.NewEncoder(w).Encode(map[string]interface{}{"user": map[string]interface{}{"id": u.ID, "email": u.Email}})
+				return
+			}
+		}
+		http.Error(w, "not_found", http.StatusNotFound)
+	}
+
+	func makeToken(userID int) (string, error) {
+		claims := jwt.MapClaims{
+			"sub": userID,
+			"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+		}
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		return tok.SignedString(jwtKey)
+	}
+
+	func authFromReq(r *http.Request) (int, bool) {
+		h := r.Header.Get("Authorization")
+		if len(h) < 7 || h[:7] != "Bearer " {
+			return 0, false
+		}
+		tokenStr := h[7:]
+		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil || !token.Valid {
+			return 0, false
+		}
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if sub, ok := claims["sub"].(float64); ok {
+				return int(sub), true
+			}
+		}
+		return 0, false
+	}
+
+	func main() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/api/auth/signup", signupHandler)
+		mux.HandleFunc("/api/auth/login", loginHandler)
+		mux.HandleFunc("/api/auth/me", meHandler)
+
+		log.Println("Starting auth server on :8080")
+		if err := http.ListenAndServe(":8080", mux); err != nil {
+			log.Fatal(err)
+		}
+	}
