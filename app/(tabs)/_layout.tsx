@@ -1,29 +1,27 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { AuthProvider } from "../../context/AuthContext";
-import { FinanceProvider } from "../../context/FinanceContext";
 
 export default function Layout() {
   return (
-    <AuthProvider>
-      <FinanceProvider>
       <Tabs
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarIcon: ({ color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap = "home";
-            if (route.name === "Home") {
+            if (route.name === "home") {
               iconName = "home";
-            } else if (route.name === "History") {
+            } else if (route.name === "history") {
               iconName = "list";
-            } else if (route.name === "Add") {
+            } else if (route.name === "add") {
               iconName = "add-circle";
-            } else if (route.name === "Stats") {
+            } else if (route.name === "debts") {
+              iconName = "wallet";
+            } else if (route.name === "stats") {
               iconName = "bar-chart";
-            } else if (route.name === "Profile") {
+            } else if (route.name === "profile") {
               iconName = "person";
-            } else if (route.name === "Settings") {
+            } else if (route.name === "settings") {
               iconName = "settings";
             }
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -35,11 +33,10 @@ export default function Layout() {
         <Tabs.Screen name="home" options={{ title: "Accueil" }} />
         <Tabs.Screen name="history" options={{ title: "Historique" }} />
         <Tabs.Screen name="add" options={{ title: "Ajouter" }} />
+        <Tabs.Screen name="debts" options={{ title: "Dettes" }} />
         <Tabs.Screen name="stats" options={{ title: "Stats" }} />
         <Tabs.Screen name="profile" options={{ title: "Profil" }} />
-        <Tabs.Screen name="settings" options={{ title: "Paramètres" }} />
+        <Tabs.Screen name="settings" options={{ title: "Paramétres" }} />
       </Tabs>
-      </FinanceProvider>
-    </AuthProvider>
   );
 }

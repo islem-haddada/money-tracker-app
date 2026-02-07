@@ -1,28 +1,112 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
-  title: string;
-  amount: number;
-  type: "income" | "expense";
-  date: string;
+  item: {
+    id: string;
+    description: string;
+    amount: number;
+    type: "income" | "expense";
+    date: string;
+    category?: string;
+  };
+  onDelete?: (id: string) => void;
 };
 
-export default function TransactionItem({ title, amount, type, date }: Props) {
+export default function TransactionItem({ item, onDelete }: Props) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={[styles.amount, { color: type === "income" ? "green" : "red" }]}>
-        {type === "income" ? "+" : "-"} {amount} DA
-      </Text>
-      <Text style={styles.date}>{date}</Text>
+    <View style={styles.transactionCard}>
+      <View style={[styles.transactionIcon, { backgroundColor: item.type === "income" ? "#e8f5e9" : "#ffebee" }]}>
+        <Ionicons 
+          name={item.type === "income" ? "arrow-up" : "arrow-down"} 
+          size={20} 
+          color={item.type === "income" ? "#4caf50" : "#f44336"} 
+        />
+      </View>
+      <View style={styles.transactionInfo}>
+        <Text style={styles.transactionDesc}>{item.description || "Sans description"}</Text>
+        <View style={styles.dateAndCat}>
+          <Text style={styles.transactionDate}>{item.date || "Date inconnue"}</Text>
+          {item.category && (
+            <>
+              <Text style={styles.dot}>•</Text>
+              <Text style={styles.transactionCategory}>{item.category}</Text>
+            </>
+          )}
+        </View>
+      </View>
+      <View style={styles.amountContainer}>
+        <Text style={[styles.transactionAmount, { color: item.type === "income" ? "#4caf50" : "#f44336" }]}>
+          {item.type === "income" ? "+" : "-"} {item.amount.toLocaleString()} DA
+        </Text>
+        {onDelete && (
+          <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={18} color="#999" />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 10, borderBottomWidth: 1, borderBottomColor: "#ddd" },
-  title: { fontSize: 16, fontWeight: "bold" },
-  amount: { fontSize: 16 },
-  date: { fontSize: 12, color: "#666" },
+  transactionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  transactionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionDesc: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+  dateAndCat: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dot: {
+    marginHorizontal: 5,
+    color: "#ccc",
+    fontSize: 12,
+  },
+  transactionCategory: {
+    fontSize: 12,
+    color: "#4caf50",
+    fontWeight: "500",
+  },
+  amountContainer: {
+    alignItems: "flex-end",
+  },
+  transactionAmount: {
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  deleteBtn: {
+    marginTop: 5,
+    padding: 2,
+  },
 });

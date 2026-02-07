@@ -1,2 +1,2 @@
-import AddTransactionScreen from "../screens/AddTransactionScreen";
+import AddTransactionScreen from "../../screens/AddTransactionScreen";
 export default AddTransactionScreen;

@@ -14,6 +14,7 @@ type AuthContextShape = {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
   logout: () => Promise<void>;
 };
 
@@ -112,8 +113,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      if (!token) return false;
+      const res = await fetch("http://localhost:8080/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Erreur lors du changement" }));
+        Alert.alert("Erreur", err.message || "Impossible de changer le mot de passe");
+        return false;
+      }
+      return true;
+    } catch (e: any) {
+      Alert.alert("Erreur", e.message || "Network error");
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
