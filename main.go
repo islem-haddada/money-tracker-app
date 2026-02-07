@@ -1,29 +1,53 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
 )
 
 var jwtKey = []byte("replace-with-secure-secret")
+var db *sql.DB
 
 type User struct {
 	ID       int    `json:"id"`
 	Email    string `json:"email"`
+	Name     string `json:"name"`
 	Password string `json:"-"`
 }
 
-var (
-	users   = map[string]*User{} // key by email
-	usersMu sync.Mutex
-	nextID  = 1
-)
+func initDB() {
+	var err error
+	db, err = sql.Open("sqlite", "./moneytracker.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	query := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		email TEXT UNIQUE NOT NULL,
+		name TEXT,
+		password TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+	_, err = db.Exec(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func sendError(w http.ResponseWriter, msg string, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"message": msg})
+}
 
 func signupHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
@@ -32,26 +56,36 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		Name     string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		sendError(w, "JSON invalide", http.StatusBadRequest)
 		return
 	}
-	usersMu.Lock()
-	defer usersMu.Unlock()
-	if _, ok := users[body.Email]; ok {
-		http.Error(w, "user_exists", http.StatusBadRequest)
-		return
-	}
-	hash, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-	u := &User{ID: nextID, Email: body.Email, Password: string(hash)}
-	nextID++
-	users[body.Email] = u
 
-	token, err := makeToken(u.ID)
-	if err != nil {
-		http.Error(w, "token_error", http.StatusInternalServerError)
+	if body.Email == "" || body.Password == "" {
+		sendError(w, "Email et mot de passe requis", http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"token": token, "user": map[string]interface{}{"id": u.ID, "email": u.Email}})
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+
+	res, err := db.Exec("INSERT INTO users (email, name, password) VALUES (?, ?, ?)", body.Email, body.Name, string(hash))
+	if err != nil {
+		sendError(w, "Cet email est déjà utilisé", http.StatusBadRequest)
+		return
+	}
+
+	id, _ := res.LastInsertId()
+	uID := int(id)
+
+	token, _ := makeToken(uID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token": token,
+		"user": map[string]interface{}{
+			"id":    uID,
+			"email": body.Email,
+			"name":  body.Name,
+		},
+	})
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,26 +94,32 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid", http.StatusBadRequest)
+		sendError(w, "JSON invalide", http.StatusBadRequest)
 		return
 	}
-	usersMu.Lock()
-	u, ok := users[body.Email]
-	usersMu.Unlock()
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(body.Password)) != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	token, err := makeToken(u.ID)
+
+	var u User
+	err := db.QueryRow("SELECT id, email, name, password FROM users WHERE email = ?", body.Email).Scan(&u.ID, &u.Email, &u.Name, &u.Password)
 	if err != nil {
-		http.Error(w, "token_error", http.StatusInternalServerError)
+		sendError(w, "Email ou mot de passe incorrect", http.StatusUnauthorized)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"token": token, "user": map[string]interface{}{"id": u.ID, "email": u.Email}})
+
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(body.Password)); err != nil {
+		sendError(w, "Email ou mot de passe incorrect", http.StatusUnauthorized)
+		return
+	}
+
+	token, _ := makeToken(u.ID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token": token,
+		"user": map[string]interface{}{
+			"id":    u.ID,
+			"email": u.Email,
+			"name":  u.Name,
+		},
+	})
 }
 
 func meHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,15 +128,22 @@ func meHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	usersMu.Lock()
-	defer usersMu.Unlock()
-	for _, u := range users {
-		if u.ID == userID {
-			json.NewEncoder(w).Encode(map[string]interface{}{"user": map[string]interface{}{"id": u.ID, "email": u.Email}})
-			return
-		}
+
+	var u User
+	err := db.QueryRow("SELECT id, email, name FROM users WHERE id = ?", userID).Scan(&u.ID, &u.Email, &u.Name)
+	if err != nil {
+		http.Error(w, "not_found", http.StatusNotFound)
+		return
 	}
-	http.Error(w, "not_found", http.StatusNotFound)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":    u.ID,
+			"email": u.Email,
+			"name":  u.Name,
+		},
+	})
 }
 
 func makeToken(userID int) (string, error) {
@@ -129,13 +176,9 @@ func authFromReq(r *http.Request) (int, bool) {
 }
 
 func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	userID, ok := authFromReq(r)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 	var body struct {
@@ -143,33 +186,35 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 		NewPassword string `json:"new_password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	usersMu.Lock()
-	defer usersMu.Unlock()
-	var currentUser *User
-	for _, u := range users {
-		if u.ID == userID {
-			currentUser = u
-			break
-		}
-	}
-	if currentUser == nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+
+	var currentHash string
+	err := db.QueryRow("SELECT password FROM users WHERE id = ?", userID).Scan(&currentHash)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(currentUser.Password), []byte(body.OldPassword)); err != nil {
-		http.Error(w, "Ancien mot de passe incorrect", http.StatusUnauthorized)
+
+	if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(body.OldPassword)); err != nil {
+		http.Error(w, "ancien mot de passe incorrect", http.StatusUnauthorized)
 		return
 	}
+
 	newHash, _ := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
-	currentUser.Password = string(newHash)
+	_, err = db.Exec("UPDATE users SET password = ? WHERE id = ?", string(newHash), userID)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "success"})
 }
 
 func main() {
+	initDB()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/auth/signup", signupHandler)
 	mux.HandleFunc("/api/auth/login", loginHandler)

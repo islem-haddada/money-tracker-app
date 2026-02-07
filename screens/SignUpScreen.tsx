@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 export default function SignUpScreen() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export default function SignUpScreen() {
   const { signup } = useAuth();
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !name) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
@@ -36,10 +37,10 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const ok = await signup(email, password);
+      const ok = await signup(email, password, name);
       if (ok) {
-        Alert.alert("Succès", "Compte créé avec succès ! Connectez-vous maintenant.");
-        router.replace({ pathname: "/auth/Login" } as any);
+        // Redirection vers home directement car signup connecte l'utilisateur
+        router.replace({ pathname: "/(tabs)/home" } as any);
       } else {
         Alert.alert("Erreur", "L'email est déjà utilisé ou invalide.");
       }
@@ -68,6 +69,17 @@ export default function SignUpScreen() {
           <View style={styles.formContainer}>
             <Text style={styles.loginTitle}>Inscription</Text>
             
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nom complet"
+                placeholderTextColor="#999"
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
+
             <View style={styles.inputWrapper}>
               <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
