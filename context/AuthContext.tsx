@@ -15,6 +15,8 @@ type AuthContextShape = {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
+  updateProfile: (name: string, email: string) => Promise<boolean>;
+  deleteAccount: () => Promise<boolean>;
   logout: () => Promise<void>;
 };
 
@@ -68,14 +70,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       const data = await res.json();
+      console.log("Login success, token:", data.token?.substring(0, 20) + "...");
       if (data.token) {
         await AsyncStorage.setItem(TOKEN_KEY, data.token);
         setToken(data.token);
         setUser(data.user ?? null);
+        console.log("Token sauvegardé et state mis à jour");
         return true;
       }
       return false;
     } catch (e: any) {
+      console.error("Login error:", e);
       Alert.alert("Erreur", e.message || "Network error");
       return false;
     }
@@ -107,6 +112,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (name: string, email: string) => {
+    try {
+      console.log("updateProfile: token =", token?.substring(0, 20) + "..." || "null");
+      if (!token) {
+        console.error("updateProfile: Aucun token disponible");
+        // Essayer de récupérer depuis AsyncStorage
+        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (!savedToken) {
+          Alert.alert("Erreur", "Pas de token. Veuillez vous reconnecter.");
+          return false;
+        }
+        setToken(savedToken);
+      }
+      
+      const activeToken = token || (await AsyncStorage.getItem(TOKEN_KEY));
+      console.log("updateProfile: Envoi", { name, email, tokenExists: !!activeToken });
+      
+      const res = await fetch("http://localhost:8080/api/auth/update-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${activeToken}`,
+        },
+        body: JSON.stringify({ name, email }),
+      });
+      console.log("updateProfile: Status", res.status);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Erreur lors de la mise à jour" }));
+        console.error("updateProfile error:", err);
+        Alert.alert("Erreur", err.message || "Impossible de mettre à jour le profil");
+        return false;
+      }
+      const data = await res.json();
+      console.log("updateProfile: Réponse", data);
+      if (data.user) {
+        setUser(data.user);
+        Alert.alert("Succès", "Profil mis à jour!");
+      } else if (user) {
+        setUser({ ...user, name, email });
+        Alert.alert("Succès", "Profil mis à jour!");
+      }
+      return true;
+    } catch (e: any) {
+      console.error("updateProfile error:", e);
+      Alert.alert("Erreur", e.message || "Erreur réseau");
+      return false;
+    }
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -115,20 +169,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
     try {
-      if (!token) return false;
+      console.log("changePassword: token =", token?.substring(0, 20) + "..." || "null");
+      if (!token) {
+        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (!savedToken) {
+          Alert.alert("Erreur", "Pas de token. Veuillez vous reconnecter.");
+          return false;
+        }
+        setToken(savedToken);
+      }
+      
+      if (newPassword.length < 6) {
+        Alert.alert("Erreur", "Le mot de passe doit avoir au moins 6 caractères");
+        return false;
+      }
+      
+      const activeToken = token || (await AsyncStorage.getItem(TOKEN_KEY));
+      console.log("changePassword: Envoi");
       const res = await fetch("http://localhost:8080/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
         },
         body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
       });
+      console.log("changePassword: Status", res.status);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Erreur lors du changement" }));
+        console.error("changePassword error:", err);
         Alert.alert("Erreur", err.message || "Impossible de changer le mot de passe");
         return false;
       }
+      Alert.alert("Succès", "Mot de passe changé!");
+      return true;
+    } catch (e: any) {
+      console.error("changePassword error:", e);
+      Alert.alert("Erreur", e.message || "Erreur réseau");
+      return false;
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      if (!token) return false;
+      const res = await fetch("http://localhost:8080/api/auth/delete-account", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Erreur lors de la suppression" }));
+        Alert.alert("Erreur", err.message || "Impossible de supprimer le compte");
+        return false;
+      }
+      await logout();
       return true;
     } catch (e: any) {
       Alert.alert("Erreur", e.message || "Network error");
@@ -137,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, changePassword }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, changePassword, updateProfile, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

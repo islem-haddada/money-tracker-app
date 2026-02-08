@@ -11,6 +11,7 @@ export type Transaction = {
   title?: string;
   date?: string;
   category?: string;
+  note?: string;
 };
 
 export type Debt = {

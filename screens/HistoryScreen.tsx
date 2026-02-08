@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TransactionItem from "../components/TransactionItem";
 import { useFinance } from "../context/FinanceContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 type TimeRange = "all" | "day" | "week" | "month";
 
 export default function HistoryScreen() {
   const { transactions, deleteTransaction } = useFinance();
   const [filter, setFilter] = useState<TimeRange>("all");
+  const { isDarkMode } = useAppTheme();
 
   const confirmDelete = (id: string) => {
     Alert.alert(
@@ -54,20 +56,32 @@ export default function HistoryScreen() {
   const FilterTab = ({ id, label }: { id: TimeRange; label: string }) => (
     <TouchableOpacity 
       onPress={() => setFilter(id)}
-      style={[styles.tab, filter === id && styles.activeTab]}
+      style={[
+        styles.tab, 
+        filter === id && styles.activeTab,
+        isDarkMode && styles.tabDark,
+        isDarkMode && filter === id && styles.activeTabDark
+      ]}
     >
-      <Text style={[styles.tabText, filter === id && styles.activeTabText]}>{label}</Text>
+      <Text style={[
+        styles.tabText, 
+        filter === id && styles.activeTabText,
+        isDarkMode && styles.tabTextDark
+      ]}>{label}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.header}>
+    <View style={[styles.container, isDarkMode && styles.containerDark]}>
+      <LinearGradient 
+        colors={isDarkMode ? ["#1a237e", "#121212"] : ["#4caf50", "#2e7d32"]} 
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Historique</Text>
         <Text style={styles.headerSubtitle}>Toutes vos transactions passées</Text>
       </LinearGradient>
 
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, isDarkMode && styles.filterBarDark]}>
         <FilterTab id="all" label="Tout" />
         <FilterTab id="day" label="Jour" />
         <FilterTab id="week" label="Semaine" />
@@ -77,8 +91,8 @@ export default function HistoryScreen() {
       <View style={styles.content}>
         {filtered.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={80} color="#ccc" />
-            <Text style={styles.emptyText}>Aucune transaction trouvée.</Text>
+            <Ionicons name="receipt-outline" size={80} color={isDarkMode ? "#444" : "#ccc"} />
+            <Text style={[styles.emptyText, isDarkMode && styles.emptyTextDark]}>Aucune transaction trouvée.</Text>
           </View>
         ) : (
           <FlatList
@@ -161,6 +175,25 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 15,
     fontSize: 16,
+  },
+  containerDark: {
+    backgroundColor: "#121212",
+  },
+  filterBarDark: {
+    backgroundColor: "#1e1e1e",
+    elevation: 2,
+  },
+  tabDark: {
+    backgroundColor: "transparent",
+  },
+  activeTabDark: {
+    backgroundColor: "#388e3c",
+  },
+  tabTextDark: {
+    color: "#aaa",
+  },
+  emptyTextDark: {
+    color: "#444",
   },
 });
 

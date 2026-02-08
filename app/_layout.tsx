@@ -1,22 +1,33 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { useColorScheme } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { FinanceProvider } from "../context/FinanceContext";
+import { NotesProvider } from "../context/NotesContext";
+import { ThemeProvider, useAppTheme } from "../context/ThemeContext";
 
-export default function RootLayout() {
-  const scheme = useColorScheme();
+function RootLayoutContent() {
+  const { isDarkMode } = useAppTheme();
 
   return (
-    <AuthProvider>
-      <FinanceProvider>
-        <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="details" options={{ title: "Détails" }} />
-          </Stack>
-        </ThemeProvider>
-      </FinanceProvider>
-    </AuthProvider>
+    <NavigationThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="details" options={{ title: "Détails" }} />
+      </Stack>
+    </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <FinanceProvider>
+          <NotesProvider>
+            <RootLayoutContent />
+          </NotesProvider>
+        </FinanceProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

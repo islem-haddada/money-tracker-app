@@ -4,12 +4,14 @@ import React, { useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { useFinance } from "../context/FinanceContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 type TimeRange = "all" | "day" | "week" | "month";
 
 export default function StatsScreen() {
   const { transactions } = useFinance();
   const [filter, setFilter] = useState<TimeRange>("all");
+  const { isDarkMode } = useAppTheme();
 
   const filterTransactions = () => {
     const now = new Date();
@@ -55,14 +57,14 @@ export default function StatsScreen() {
       name: "Revenus",
       population: totalIncome,
       color: "#4caf50",
-      legendFontColor: "#7F7F7F",
+      legendFontColor: isDarkMode ? "#ccc" : "#7F7F7F",
       legendFontSize: 14,
     },
     {
       name: "Dépenses",
       population: totalExpense,
       color: "#f44336",
-      legendFontColor: "#7F7F7F",
+      legendFontColor: isDarkMode ? "#ccc" : "#7F7F7F",
       legendFontSize: 14,
     },
   ];
@@ -70,20 +72,35 @@ export default function StatsScreen() {
   const FilterTab = ({ id, label }: { id: TimeRange; label: string }) => (
     <TouchableOpacity 
       onPress={() => setFilter(id)}
-      style={[styles.tab, filter === id && styles.activeTab]}
+      style={[
+        styles.tab, 
+        filter === id && styles.activeTab,
+        isDarkMode && styles.tabDark,
+        isDarkMode && filter === id && styles.activeTabDark
+      ]}
     >
-      <Text style={[styles.tabText, filter === id && styles.activeTabText]}>{label}</Text>
+      <Text style={[
+        styles.tabText, 
+        filter === id && styles.activeTabText,
+        isDarkMode && styles.tabTextDark
+      ]}>{label}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.header}>
+    <ScrollView 
+      style={[styles.container, isDarkMode && styles.containerDark]} 
+      showsVerticalScrollIndicator={false}
+    >
+      <LinearGradient 
+        colors={isDarkMode ? ["#1a237e", "#121212"] : ["#4caf50", "#2e7d32"]} 
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Analyses Financières</Text>
         <Text style={styles.headerSubtitle}>Visualisez vos flux de trésorerie</Text>
       </LinearGradient>
 
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, isDarkMode && styles.filterBarDark]}>
         <FilterTab id="all" label="Tout" />
         <FilterTab id="day" label="Jour" />
         <FilterTab id="week" label="Semaine" />
@@ -91,8 +108,8 @@ export default function StatsScreen() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.chartCard}>
-          <Text style={styles.cardTitle}>Répartition des flux</Text>
+        <View style={[styles.chartCard, isDarkMode && styles.cardDark]}>
+          <Text style={[styles.cardTitle, isDarkMode && styles.cardTitleDark]}>Répartition des flux</Text>
           <View style={styles.chartWrapper}>
             {(totalIncome + totalExpense) > 0 ? (
               <PieChart
@@ -119,23 +136,23 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        <View style={styles.detailsCard}>
-          <Text style={styles.cardTitle}>Résumé détaillé</Text>
+        <View style={[styles.detailsCard, isDarkMode && styles.cardDark]}>
+          <Text style={[styles.cardTitle, isDarkMode && styles.cardTitleDark]}>Résumé détaillé</Text>
           
           <View style={styles.detailItem}>
             <View style={[styles.indicator, { backgroundColor: "#4caf50" }]} />
-            <Text style={styles.detailLabel}>Total revenus</Text>
+            <Text style={[styles.detailLabel, isDarkMode && styles.detailLabelDark]}>Total revenus</Text>
             <Text style={[styles.detailValue, { color: "#4caf50" }]}>+{totalIncome.toLocaleString()} DA</Text>
           </View>
 
           <View style={styles.detailItem}>
             <View style={[styles.indicator, { backgroundColor: "#f44336" }]} />
-            <Text style={styles.detailLabel}>Total dépenses</Text>
+            <Text style={[styles.detailLabel, isDarkMode && styles.detailLabelDark]}>Total dépenses</Text>
             <Text style={[styles.detailValue, { color: "#f44336" }]}>-{totalExpense.toLocaleString()} DA</Text>
           </View>
 
           <View style={[styles.detailItem, styles.totalItem]}>
-            <Text style={styles.totalLabel}>Balance Finale</Text>
+            <Text style={[styles.totalLabel, isDarkMode && styles.totalLabelDark]}>Balance Finale</Text>
             <Text style={[styles.totalValue, { color: balance >= 0 ? "#2e7d32" : "#c62828" }]}>
               {balance.toLocaleString()} DA
             </Text>
@@ -278,6 +295,41 @@ const styles = StyleSheet.create({
   noData: {
     color: "#999",
     fontStyle: "italic",
+  },
+  containerDark: {
+    backgroundColor: "#121212",
+  },
+  filterBarDark: {
+    backgroundColor: "#1e1e1e",
+    elevation: 2,
+  },
+  tabDark: {
+    backgroundColor: "transparent",
+  },
+  activeTabDark: {
+    backgroundColor: "#388e3c",
+  },
+  tabTextDark: {
+    color: "#aaa",
+  },
+  cardDark: {
+    backgroundColor: "#1e1e1e",
+    elevation: 2,
+  },
+  cardTitleDark: {
+    color: "#fff",
+  },
+  detailLabelDark: {
+    color: "#aaa",
+  },
+  detailValueDark: {
+    color: "#fff",
+  },
+  totalLabelDark: {
+    color: "#fff",
+  },
+  totalValueDark: {
+    color: "#66bb6a",
   },
 });
 

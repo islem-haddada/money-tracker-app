@@ -15,6 +15,7 @@ import {
     View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  const { isDarkMode } = useAppTheme();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -50,7 +52,10 @@ export default function LoginScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.container}>
+        <LinearGradient 
+          colors={isDarkMode ? ["#1a237e", "#121212"] : ["#4caf50", "#2e7d32"]} 
+          style={styles.container}
+        >
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Ionicons name="wallet" size={60} color="#fff" />
@@ -59,15 +64,15 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Gérez vos finances avec simplicité</Text>
           </View>
 
-          <View style={styles.formContainer}>
-            <Text style={styles.loginTitle}>Connexion</Text>
+          <View style={[styles.formContainer, isDarkMode && styles.formContainerDark]}>
+            <Text style={[styles.loginTitle, isDarkMode && styles.loginTitleDark]}>Connexion</Text>
             
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="mail-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Email"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -75,12 +80,12 @@ export default function LoginScreen() {
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="lock-closed-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Mot de passe"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -157,12 +162,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  formContainerDark: {
+    backgroundColor: "#1e1e1e",
+  },
   loginTitle: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#333",
     marginBottom: 25,
     textAlign: "center",
+  },
+  loginTitleDark: {
+    color: "#fff",
   },
   inputWrapper: {
     flexDirection: "row",
@@ -174,6 +185,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#eee",
   },
+  inputWrapperDark: {
+    backgroundColor: "#2c2c2c",
+    borderColor: "#333",
+  },
   inputIcon: {
     marginRight: 10,
   },
@@ -182,6 +197,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 16,
     color: "#333",
+  },
+  inputDark: {
+    color: "#fff",
   },
   button: {
     marginTop: 10,

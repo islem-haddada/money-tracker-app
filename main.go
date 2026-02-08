@@ -213,6 +213,78 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "success"})
 }
 
+func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authFromReq(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var body struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if body.Email == "" {
+		http.Error(w, "email is required", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec("UPDATE users SET name = ?, email = ? WHERE id = ?", body.Name, body.Email, userID)
+	if err != nil {
+		http.Error(w, "db error or email already exists", http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch updated user data
+	var u User
+	err = db.QueryRow("SELECT id, email, name FROM users WHERE id = ?", userID).Scan(&u.ID, &u.Email, &u.Name)
+	if err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "profile updated",
+		"user": map[string]interface{}{
+			"id":    u.ID,
+			"email": u.Email,
+			"name":  u.Name,
+		},
+	})
+}
+
+func deleteAccountHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authFromReq(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Optionnel: On pourrait supprimer les transactions et dettes de l'utilisateur ici
+	// si on avait une colonne user_id dans ces tables.
+	// Pour l'instant on se concentre sur la suppression du compte.
+
+	_, err := db.Exec("DELETE FROM users WHERE id = ?", userID)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "account deleted"})
+}
 func main() {
 	initDB()
 	mux := http.NewServeMux()
@@ -220,6 +292,8 @@ func main() {
 	mux.HandleFunc("/api/auth/login", loginHandler)
 	mux.HandleFunc("/api/auth/me", meHandler)
 	mux.HandleFunc("/api/auth/change-password", changePasswordHandler)
+	mux.HandleFunc("/api/auth/update-profile", updateProfileHandler)
+	mux.HandleFunc("/api/auth/delete-account", deleteAccountHandler)
 
 	// CORS Middleware
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

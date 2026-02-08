@@ -15,13 +15,16 @@ import {
 } from "react-native";
 import uuid from "react-native-uuid";
 import { useFinance } from "../context/FinanceContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function AddTransactionScreen() {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"income" | "expense">("income");
   const [category, setCategory] = useState("Autre");
+  const [note, setNote] = useState("");
   const { addTransaction } = useFinance();
+  const { isDarkMode } = useAppTheme();
   const router = useRouter();
 
   const categories = {
@@ -54,11 +57,13 @@ export default function AddTransactionScreen() {
       type,
       category,
       date: new Date().toISOString().split("T")[0],
+      note,
     });
 
     Alert.alert("Succès", "Transaction ajoutée !");
     setDescription("");
     setAmount("");
+    setNote("");
     setType("income");
     setCategory("Autre");
     router.replace("/(tabs)/home");
@@ -69,14 +74,14 @@ export default function AddTransactionScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={styles.container}>
-        <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.header}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={[styles.container, isDarkMode && styles.containerDark]}>
+        <LinearGradient colors={isDarkMode ? ["#1b5e20", "#000"] : ["#4caf50", "#2e7d32"]} style={styles.header}>
           <Text style={styles.headerTitle}>Nouvelle Transaction</Text>
           <Text style={styles.headerSubtitle}>Enregistrez vos revenus ou dépenses</Text>
         </LinearGradient>
 
-        <View style={styles.formCard}>
-          <View style={styles.typeSelector}>
+        <View style={[styles.formCard, isDarkMode && styles.formCardDark]}>
+          <View style={[styles.typeSelector, isDarkMode && styles.typeSelectorDark]}>
             <TouchableOpacity
               style={[
                 styles.typeBtn,
@@ -87,7 +92,7 @@ export default function AddTransactionScreen() {
               <Ionicons 
                 name="arrow-down-circle" 
                 size={24} 
-                color={type === "income" ? "#fff" : "#4caf50"} 
+                color={type === "income" ? "#fff" : (isDarkMode ? "#aaa" : "#4caf50")} 
               />
               <Text style={[styles.typeBtnText, type === "income" && styles.textWhite]}>Revenu</Text>
             </TouchableOpacity>
@@ -102,19 +107,20 @@ export default function AddTransactionScreen() {
               <Ionicons 
                 name="arrow-up-circle" 
                 size={24} 
-                color={type === "expense" ? "#fff" : "#f44336"} 
+                color={type === "expense" ? "#fff" : (isDarkMode ? "#aaa" : "#f44336")} 
               />
               <Text style={[styles.typeBtnText, type === "expense" && styles.textWhite]}>Dépense</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Description</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="document-text-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.inputLabel, isDarkMode && styles.inputLabelDark]}>Description</Text>
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="document-text-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Ex: Salaire, Loyer..."
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={description}
                 onChangeText={setDescription}
               />
@@ -122,12 +128,13 @@ export default function AddTransactionScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Montant (DA)</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="cash-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.inputLabel, isDarkMode && styles.inputLabelDark]}>Montant (DA)</Text>
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="cash-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="0.00"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
@@ -136,7 +143,7 @@ export default function AddTransactionScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Catégorie</Text>
+            <Text style={[styles.inputLabel, isDarkMode && styles.inputLabelDark]}>Catégorie</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
               {categories[type].map((cat) => (
                 <TouchableOpacity
@@ -149,20 +156,37 @@ export default function AddTransactionScreen() {
                 >
                   <View style={[
                     styles.catIconBox,
+                    isDarkMode && styles.catIconBoxDark,
                     category === cat.name && styles.catIconActive
                   ]}>
                     <Ionicons 
                       name={cat.icon as any} 
                       size={20} 
-                      color={category === cat.name ? "#fff" : "#666"} 
+                      color={category === cat.name ? "#fff" : (isDarkMode ? "#aaa" : "#666")} 
                     />
                   </View>
-                  <Text style={[styles.categoryText, category === cat.name && styles.activeCatText]}>
+                  <Text style={[styles.categoryText, isDarkMode && styles.categoryTextDark, category === cat.name && styles.activeCatText]}>
                     {cat.name}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, isDarkMode && styles.inputLabelDark]}>Notes (optionnel)</Text>
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark, styles.notesInput]}>
+              <Ionicons name="document-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, isDarkMode && styles.inputDark, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Ajouter une note..."
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
+                value={note}
+                onChangeText={setNote}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
           </View>
 
           <TouchableOpacity style={styles.addBtnContainer} onPress={handleAdd}>
@@ -183,6 +207,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
+  },
+  containerDark: {
+    backgroundColor: "#121212",
   },
   header: {
     paddingTop: 60,
@@ -212,12 +239,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
   },
+  formCardDark: {
+    backgroundColor: "#1e1e1e",
+  },
   typeSelector: {
     flexDirection: "row",
     backgroundColor: "#f1f3f5",
     borderRadius: 16,
     padding: 6,
     marginBottom: 25,
+  },
+  typeSelectorDark: {
+    backgroundColor: "#2d2d2d",
   },
   typeBtn: {
     flex: 1,
@@ -252,6 +285,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
+  inputLabelDark: {
+    color: "#fff",
+  },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -261,6 +297,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#eee",
   },
+  inputWrapperDark: {
+    backgroundColor: "#2d2d2d",
+    borderColor: "#444",
+  },
   inputIcon: {
     marginRight: 10,
   },
@@ -269,6 +309,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 16,
     color: "#333",
+  },
+  inputDark: {
+    color: "#fff",
+    backgroundColor: "#2d2d2d",
   },
   addBtnContainer: {
     marginTop: 10,
@@ -302,6 +346,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 5,
   },
+  catIconBoxDark: {
+    backgroundColor: "#2d2d2d",
+  },
   catIconActive: {
     backgroundColor: "#4caf50",
   },
@@ -313,8 +360,16 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
   },
+  categoryTextDark: {
+    color: "#aaa",
+  },
   activeCatText: {
     color: "#4caf50",
     fontWeight: "bold",
+  },
+  notesInput: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    alignItems: "flex-start",
   },
 });

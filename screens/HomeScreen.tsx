@@ -4,10 +4,14 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import TransactionItem from "../components/TransactionItem";
+import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function HomeScreen() {
   const { transactions } = useFinance();
+  const { user } = useAuth();
+  const { isDarkMode } = useAppTheme();
   const router = useRouter();
 
   const totalIncome = transactions
@@ -21,16 +25,16 @@ export default function HomeScreen() {
   const balance = totalIncome - totalExpense;
 
   return (
-    <ScrollView style={styles.container}>
-      <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.header}>
+    <ScrollView style={[styles.container, isDarkMode && styles.containerDark]}>
+      <LinearGradient
+        colors={isDarkMode ? ["#1a237e", "#121212"] : ["#4caf50", "#2e7d32"]}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.welcomeText}>Bonjour,</Text>
-            <Text style={styles.userName}>Bienvenue sur Money Tracker</Text>
+            <Text style={styles.userName}>{user?.name || "Bienvenue"}</Text>
           </View>
-          <TouchableOpacity style={styles.notificationBtn}>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.balanceCard}>
@@ -61,36 +65,36 @@ export default function HomeScreen() {
         </View>
       </LinearGradient>
 
-      <View style={styles.content}>
-        <View style={styles.actionRow}>
+      <View style={[styles.content, isDarkMode && styles.contentDark]}>
+        <View style={[styles.actionRow, isDarkMode && styles.actionRowDark]}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => router.push("/(tabs)/add")}>
             <LinearGradient colors={["#66bb6a", "#43a047"]} style={styles.actionIcon}>
               <Ionicons name="add" size={28} color="#fff" />
             </LinearGradient>
-            <Text style={styles.actionText}>Ajouter</Text>
+            <Text style={[styles.actionText, isDarkMode && styles.actionTextDark]}>Ajouter</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => router.push("/(tabs)/history")}>
             <LinearGradient colors={["#42a5f5", "#1e88e5"]} style={styles.actionIcon}>
               <Ionicons name="list" size={24} color="#fff" />
             </LinearGradient>
-            <Text style={styles.actionText}>Historique</Text>
+            <Text style={[styles.actionText, isDarkMode && styles.actionTextDark]}>Historique</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => router.push("/(tabs)/stats")}>
             <LinearGradient colors={["#ffa726", "#fb8c00"]} style={styles.actionIcon}>
               <Ionicons name="pie-chart" size={24} color="#fff" />
             </LinearGradient>
-            <Text style={styles.actionText}>Stats</Text>
+            <Text style={[styles.actionText, isDarkMode && styles.actionTextDark]}>Stats</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => router.push("/(tabs)/debts")}>
             <LinearGradient colors={["#ef5350", "#e53935"]} style={styles.actionIcon}>
               <Ionicons name="wallet" size={24} color="#fff" />
             </LinearGradient>
-            <Text style={styles.actionText}>Dettes</Text>
+            <Text style={[styles.actionText, isDarkMode && styles.actionTextDark]}>Dettes</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Transactions récentes</Text>
+          <Text style={[styles.sectionTitle, isDarkMode && styles.sectionTitleDark]}>Transactions récentes</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/history")}>
             <Text style={styles.seeAll}>Tout voir</Text>
           </TouchableOpacity>
@@ -98,8 +102,8 @@ export default function HomeScreen() {
 
         {transactions.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Aucune transaction pour le moment.</Text>
+            <Ionicons name="receipt-outline" size={64} color={isDarkMode ? "#444" : "#ccc"} />
+            <Text style={[styles.emptyText, isDarkMode && styles.emptyTextDark]}>Aucune transaction pour le moment.</Text>
           </View>
         ) : (
           transactions.slice(-5).reverse().map((item) => (
@@ -298,6 +302,26 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  containerDark: {
+    backgroundColor: "#121212",
+  },
+  contentDark: {
+    backgroundColor: "#121212",
+  },
+  actionRowDark: {
+    backgroundColor: "#1e1e1e",
+    shadowColor: "#000",
+    elevation: 2,
+  },
+  actionTextDark: {
+    color: "#ccc",
+  },
+  sectionTitleDark: {
+    color: "#fff",
+  },
+  emptyTextDark: {
+    color: "#555",
   },
 });
 

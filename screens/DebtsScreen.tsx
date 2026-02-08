@@ -14,9 +14,11 @@ import {
 } from "react-native";
 import uuid from "react-native-uuid";
 import { useFinance } from "../context/FinanceContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function DebtsScreen() {
   const { debts, addDebt, deleteDebt, toggleDebtPaid } = useFinance();
+  const { isDarkMode } = useAppTheme();
   const [person, setPerson] = useState("");
   const [amount, setAmount] = useState("");
 
@@ -48,33 +50,35 @@ export default function DebtsScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, isDarkMode && styles.containerDark]}
     >
-      <LinearGradient colors={["#f44336", "#c62828"]} style={styles.header}>
+      <LinearGradient colors={isDarkMode ? ["#b71c1c", "#000"] : ["#f44336", "#c62828"]} style={styles.header}>
         <Text style={styles.headerTitle}>Gestion des Dettes</Text>
         <Text style={styles.headerSubtitle}>Gents li ysaloni sward</Text>
-        <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total à rembourser</Text>
-          <Text style={styles.totalValue}>{totalOwed.toLocaleString()} DA</Text>
+        <View style={[styles.totalCard, isDarkMode && styles.totalCardDark]}>
+          <Text style={[styles.totalLabel, isDarkMode && styles.textDark]}>Total à rembourser</Text>
+          <Text style={[styles.totalValue, isDarkMode && styles.textDark]}>{totalOwed.toLocaleString()} DA</Text>
         </View>
       </LinearGradient>
 
-      <View style={styles.content}>
-        <View style={styles.inputCard}>
-          <View style={styles.inputWrapper}>
-            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+      <View style={[styles.content, isDarkMode && styles.contentDark]}>
+        <View style={[styles.inputCard, isDarkMode && styles.inputCardDark]}>
+          <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+            <Ionicons name="person-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDarkMode && styles.inputDark]}
               placeholder="Qui vous a prêté ?"
+              placeholderTextColor={isDarkMode ? "#555" : "#999"}
               value={person}
               onChangeText={setPerson}
             />
           </View>
-          <View style={styles.inputWrapper}>
-            <Ionicons name="cash-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+            <Ionicons name="cash-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDarkMode && styles.inputDark]}
               placeholder="Montant (DA)"
+              placeholderTextColor={isDarkMode ? "#555" : "#999"}
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
@@ -91,7 +95,7 @@ export default function DebtsScreen() {
           data={debts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={[styles.debtCard, item.isPaid && styles.paidCard]}>
+            <View style={[styles.debtCard, item.isPaid && styles.paidCard, isDarkMode && styles.debtCardDark, item.isPaid && isDarkMode && styles.paidCardDark]}>
               <View style={styles.debtIcon}>
                 <Ionicons 
                   name={item.isPaid ? "checkmark-done" : "time-outline"} 
@@ -296,5 +300,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },
+  containerDark: {
+    backgroundColor: "#121212",
+  },
+  contentDark: {
+    backgroundColor: "#121212",
+  },
+  inputCardDark: {
+    backgroundColor: "#1e1e1e",
+  },
+  inputWrapperDark: {
+    backgroundColor: "#2d2d2d",
+    borderColor: "#444",
+  },
+  inputDark: {
+    color: "#fff",
+    backgroundColor: "#2d2d2d",
+  },
+  totalCardDark: {
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  debtCardDark: {
+    backgroundColor: "#1e1e1e",
+  },
+  paidCardDark: {
+    opacity: 0.6,
+    backgroundColor: "#252525",
+  },
+  textDark: {
+    color: "#fff",
+  },
 });
+
 

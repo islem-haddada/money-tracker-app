@@ -15,6 +15,7 @@ import {
     View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { useAppTheme } from "../context/ThemeContext";
 
 export default function SignUpScreen() {
   const [name, setName] = useState("");
@@ -23,6 +24,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { signup } = useAuth();
+  const { isDarkMode } = useAppTheme();
 
   const handleSignUp = async () => {
     if (!email || !password || !name) {
@@ -57,7 +59,10 @@ export default function SignUpScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <LinearGradient colors={["#4caf50", "#2e7d32"]} style={styles.container}>
+        <LinearGradient 
+          colors={isDarkMode ? ["#1a237e", "#121212"] : ["#4caf50", "#2e7d32"]} 
+          style={styles.container}
+        >
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Ionicons name="person-add" size={50} color="#fff" />
@@ -66,26 +71,26 @@ export default function SignUpScreen() {
             <Text style={styles.subtitle}>Commencez à gérer votre argent mieux</Text>
           </View>
 
-          <View style={styles.formContainer}>
-            <Text style={styles.loginTitle}>Inscription</Text>
+          <View style={[styles.formContainer, isDarkMode && styles.formContainerDark]}>
+            <Text style={[styles.loginTitle, isDarkMode && styles.loginTitleDark]}>Inscription</Text>
             
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="person-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Nom complet"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={name}
                 onChangeText={setName}
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="mail-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Email"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -93,12 +98,12 @@ export default function SignUpScreen() {
               />
             </View>
 
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, isDarkMode && styles.inputWrapperDark]}>
+              <Ionicons name="lock-closed-outline" size={20} color={isDarkMode ? "#aaa" : "#666"} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, isDarkMode && styles.inputDark]}
                 placeholder="Mot de passe"
-                placeholderTextColor="#999"
+                placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -175,12 +180,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  formContainerDark: {
+    backgroundColor: "#1e1e1e",
+  },
   loginTitle: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#333",
     marginBottom: 25,
     textAlign: "center",
+  },
+  loginTitleDark: {
+    color: "#fff",
   },
   inputWrapper: {
     flexDirection: "row",
@@ -192,6 +203,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#eee",
   },
+  inputWrapperDark: {
+    backgroundColor: "#2c2c2c",
+    borderColor: "#333",
+  },
   inputIcon: {
     marginRight: 10,
   },
@@ -200,6 +215,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 16,
     color: "#333",
+  },
+  inputDark: {
+    color: "#fff",
   },
   button: {
     marginTop: 10,
