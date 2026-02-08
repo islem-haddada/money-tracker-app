@@ -12,7 +12,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var jwtKey = []byte("replace-with-secure-secret")
+var jwtKey = []byte("your-super-secret-jwt-key-change-this-in-production")
 var db *sql.DB
 
 type User struct {
@@ -20,6 +20,48 @@ type User struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"-"`
+}
+
+// Email validation regex
+func isValidEmail(email string) bool {
+	if len(email) < 5 || len(email) > 254 {
+		return false
+	}
+	atIndex := -1
+	for i := 0; i < len(email); i++ {
+		if email[i] == '@' {
+			if atIndex >= 0 {
+				return false
+			}
+			atIndex = i
+		}
+	}
+	if atIndex < 1 || atIndex > len(email)-5 {
+		return false
+	}
+	domain := email[atIndex+1:]
+	if !contains(domain, ".") || len(domain) < 4 {
+		return false
+	}
+	return true
+}
+
+func contains(s, substr string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == substr[0] && i+len(substr) <= len(s) {
+			match := true
+			for j := 0; j < len(substr); j++ {
+				if s[i+j] != substr[j] {
+					match = false
+					break
+				}
+			}
+			if match {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func initDB() {
@@ -60,8 +102,28 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validation
 	if body.Email == "" || body.Password == "" {
 		sendError(w, "Email et mot de passe requis", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidEmail(body.Email) {
+		sendError(w, "Email invalide", http.StatusBadRequest)
+		return
+	}
+
+	if len(body.Password) < 6 {
+		sendError(w, "Le mot de passe doit faire au moins 6 caractères", http.StatusBadRequest)
+		return
+	}
+
+	if len(body.Name) == 0 {
+		body.Name = "Utilisateur"
+	}
+
+	if len(body.Name) > 100 {
+		sendError(w, "Nom trop long", http.StatusBadRequest)
 		return
 	}
 
@@ -190,6 +252,22 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validation
+	if body.OldPassword == "" || body.NewPassword == "" {
+		http.Error(w, "old and new password required", http.StatusBadRequest)
+		return
+	}
+
+	if len(body.NewPassword) < 6 {
+		http.Error(w, "new password must be at least 6 characters", http.StatusBadRequest)
+		return
+	}
+
+	if body.OldPassword == body.NewPassword {
+		http.Error(w, "new password must be different", http.StatusBadRequest)
+		return
+	}
+
 	var currentHash string
 	err := db.QueryRow("SELECT password FROM users WHERE id = ?", userID).Scan(&currentHash)
 	if err != nil {
@@ -229,8 +307,23 @@ func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validation
 	if body.Email == "" {
 		http.Error(w, "email is required", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidEmail(body.Email) {
+		http.Error(w, "email is invalid", http.StatusBadRequest)
+		return
+	}
+
+	if len(body.Name) == 0 {
+		body.Name = "Utilisateur"
+	}
+
+	if len(body.Name) > 100 {
+		http.Error(w, "name too long", http.StatusBadRequest)
 		return
 	}
 
@@ -251,12 +344,7 @@ func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "profile updated",
-		"user": map[string]interface{}{
-			"id":    u.ID,
-			"email": u.Email,
-			"name":  u.Name,
-		},
+		"user": u,
 	})
 }
 

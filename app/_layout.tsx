@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
+import React from "react";
 import { AuthProvider } from "../context/AuthContext";
 import { FinanceProvider } from "../context/FinanceContext";
 import { NotesProvider } from "../context/NotesContext";
@@ -11,6 +12,8 @@ function RootLayoutContent() {
   return (
     <NavigationThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="details" options={{ title: "Détails" }} />
       </Stack>

@@ -23,6 +23,21 @@ type AuthContextShape = {
 const AuthContext = createContext<AuthContextShape | undefined>(undefined);
 
 const TOKEN_KEY = "auth_token";
+const API_URL = "http://192.168.100.9:8080";
+
+// Email validation
+const isValidEmail = (email: string): boolean => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+// Network error handler
+const getErrorMessage = (err: any): string => {
+  if (err.message === "Network request failed") {
+    return "Pas de connexion internet. Vérifiez votre connexion et réessayez.";
+  }
+  return err.message || "Une erreur est survenue";
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -33,10 +48,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(TOKEN_KEY);
+        console.log("AuthProvider: Token from AsyncStorage:", saved ? "Found" : "Not found");
         if (saved) {
           setToken(saved);
           // Validate token with backend
-          const res = await fetch("http://localhost:8080/api/auth/me", {
+          const res = await fetch(`${API_URL}/api/auth/me`, {
             headers: { Authorization: `Bearer ${saved}` },
           });
           if (res.ok) {
@@ -59,13 +75,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      // Validation
+      if (!email || !password) {
+        Alert.alert("Erreur", "Veuillez remplir tous les champs");
+        return false;
+      }
+
+      if (!isValidEmail(email)) {
+        Alert.alert("Erreur", "Email invalide");
+        return false;
+      }
+
+      console.log("Fetching:", `${API_URL}/api/auth/login`);
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      console.log("Response status:", res.status);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Login failed" }));
+        console.log("Login failed:", err.message);
         Alert.alert("Erreur", err.message || "Impossible de se connecter");
         return false;
       }
@@ -81,14 +111,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (e: any) {
       console.error("Login error:", e);
-      Alert.alert("Erreur", e.message || "Network error");
+      Alert.alert("Erreur de connexion", getErrorMessage(e));
       return false;
     }
   };
 
   const signup = async (email: string, password: string, name?: string) => {
     try {
-      const res = await fetch("http://localhost:8080/api/auth/signup", {
+      // Validation
+      if (!email || !password || !name) {
+        Alert.alert("Erreur", "Veuillez remplir tous les champs");
+        return false;
+      }
+
+      if (!isValidEmail(email)) {
+        Alert.alert("Erreur", "Email invalide");
+        return false;
+      }
+
+      if (password.length < 6) {
+        Alert.alert("Erreur", "Le mot de passe doit faire au moins 6 caractères");
+        return false;
+      }
+
+      if (name.length > 100) {
+        Alert.alert("Erreur", "Le nom est trop long");
+        return false;
+      }
+
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),
@@ -107,29 +158,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return false;
     } catch (e: any) {
-      Alert.alert("Erreur", e.message || "Network error");
+      console.error("Signup error:", e);
+      Alert.alert("Erreur d'inscription", getErrorMessage(e));
       return false;
     }
   };
 
   const updateProfile = async (name: string, email: string) => {
     try {
+      // Validation
+      if (!name || !email) {
+        Alert.alert("Erreur", "Veuillez remplir tous les champs");
+        return false;
+      }
+
+      if (!isValidEmail(email)) {
+        Alert.alert("Erreur", "Email invalide");
+        return false;
+      }
+
+      if (name.length > 100) {
+        Alert.alert("Erreur", "Le nom est trop long");
+        return false;
+      }
+
       console.log("updateProfile: token =", token?.substring(0, 20) + "..." || "null");
-      if (!token) {
-        console.error("updateProfile: Aucun token disponible");
+      
+      let activeToken = token;
+      if (!activeToken) {
+        console.warn("updateProfile: Token not in state, fetching from AsyncStorage");
         // Essayer de récupérer depuis AsyncStorage
         const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        console.log("updateProfile: Token from AsyncStorage:", savedToken ? "Found" : "NOT FOUND!");
         if (!savedToken) {
-          Alert.alert("Erreur", "Pas de token. Veuillez vous reconnecter.");
+          console.error("❌ NO TOKEN FOUND! User not properly logged in.");
+          Alert.alert("Erreur", "Vous n'êtes pas connecté. Veuillez vous reconnecter.");
           return false;
         }
+        activeToken = savedToken;
         setToken(savedToken);
       }
       
-      const activeToken = token || (await AsyncStorage.getItem(TOKEN_KEY));
-      console.log("updateProfile: Envoi", { name, email, tokenExists: !!activeToken });
-      
-      const res = await fetch("http://localhost:8080/api/auth/update-profile", {
+      console.log("updateProfile: Using token", activeToken?.substring(0, 20) + "...");
+      const res = await fetch(`${API_URL}/api/auth/update-profile`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         body: JSON.stringify({ name, email }),
       });
-      console.log("updateProfile: Status", res.status);
+      console.log("updateProfile: Status", res.status, res.statusText);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Erreur lors de la mise à jour" }));
         console.error("updateProfile error:", err);
@@ -147,16 +218,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       console.log("updateProfile: Réponse", data);
       if (data.user) {
+        console.log("✅ updateProfile: User updated:", data.user);
         setUser(data.user);
         Alert.alert("Succès", "Profil mis à jour!");
       } else if (user) {
+        console.log("✅ updateProfile: User updated locally:", { name, email });
         setUser({ ...user, name, email });
         Alert.alert("Succès", "Profil mis à jour!");
       }
       return true;
     } catch (e: any) {
       console.error("updateProfile error:", e);
-      Alert.alert("Erreur", e.message || "Erreur réseau");
+      Alert.alert("Erreur", getErrorMessage(e));
       return false;
     }
   };
@@ -169,24 +242,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
     try {
+      // Validation
+      if (!oldPassword || !newPassword) {
+        Alert.alert("Erreur", "Veuillez remplir tous les champs");
+        return false;
+      }
+
+      if (newPassword.length < 6) {
+        Alert.alert("Erreur", "Le mot de passe doit avoir au moins 6 caractères");
+        return false;
+      }
+
+      if (oldPassword === newPassword) {
+        Alert.alert("Erreur", "Le nouveau mot de passe doit être différent");
+        return false;
+      }
+
       console.log("changePassword: token =", token?.substring(0, 20) + "..." || "null");
-      if (!token) {
+      
+      let activeToken = token;
+      if (!activeToken) {
+        console.warn("changePassword: Token not in state, fetching from AsyncStorage");
         const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
         if (!savedToken) {
           Alert.alert("Erreur", "Pas de token. Veuillez vous reconnecter.");
           return false;
         }
+        activeToken = savedToken;
         setToken(savedToken);
       }
       
-      if (newPassword.length < 6) {
-        Alert.alert("Erreur", "Le mot de passe doit avoir au moins 6 caractères");
-        return false;
-      }
-      
-      const activeToken = token || (await AsyncStorage.getItem(TOKEN_KEY));
-      console.log("changePassword: Envoi");
-      const res = await fetch("http://localhost:8080/api/auth/change-password", {
+      console.log("changePassword: Using token", activeToken?.substring(0, 20) + "...");
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -205,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (e: any) {
       console.error("changePassword error:", e);
-      Alert.alert("Erreur", e.message || "Erreur réseau");
+      Alert.alert("Erreur", getErrorMessage(e));
       return false;
     }
   };
@@ -213,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteAccount = async () => {
     try {
       if (!token) return false;
-      const res = await fetch("http://localhost:8080/api/auth/delete-account", {
+      const res = await fetch(`${API_URL}/api/auth/delete-account`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -227,7 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await logout();
       return true;
     } catch (e: any) {
-      Alert.alert("Erreur", e.message || "Network error");
+      Alert.alert("Erreur", getErrorMessage(e));
       return false;
     }
   };

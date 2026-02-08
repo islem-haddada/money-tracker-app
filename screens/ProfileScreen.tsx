@@ -9,7 +9,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAppTheme } from "../context/ThemeContext";
 
 export default function ProfileScreen() {
-  const { user, logout, changePassword, updateProfile, deleteAccount } = useAuth();
+  const { user, logout, changePassword, updateProfile, deleteAccount, loading } = useAuth();
   const { transactions, debts } = useFinance();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const router = useRouter();
@@ -110,6 +110,11 @@ export default function ProfileScreen() {
   };
 
   const handleChangePassword = () => {
+    if (loading) {
+      Alert.alert("Attendez", "L'app est en cours de chargement...");
+      return;
+    }
+
     Alert.prompt(
       "Ancien mot de passe",
       "Veuillez entrer votre mot de passe actuel",
@@ -146,6 +151,11 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
+    if (loading) {
+      Alert.alert("Attendez", "L'app est en cours de chargement...");
+      return;
+    }
+
     Alert.alert(
       "⚠ Suppression du compte",
       "Êtes-vous absolument sûr ? Cette action est irréversible et toutes vos données seront supprimées.",
@@ -188,6 +198,12 @@ export default function ProfileScreen() {
       Alert.alert("Erreur", "Le nom et l'email sont obligatoires");
       return;
     }
+
+    if (loading) {
+      Alert.alert("Attendez", "L'app est en cours de chargement...");
+      return;
+    }
+
     console.log("handleUpdateProfile: Appel de updateProfile avec", { newName, newEmail });
     const success = await updateProfile(newName, newEmail);
     console.log("handleUpdateProfile: Résultat", success);
@@ -223,11 +239,11 @@ export default function ProfileScreen() {
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModalVisible(false)} disabled={loading}>
                 <Text style={styles.cancelBtnText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateProfile}>
-                <Text style={styles.saveBtnText}>Enregistrer</Text>
+              <TouchableOpacity style={[styles.saveBtn, loading && { opacity: 0.6 }]} onPress={handleUpdateProfile} disabled={loading}>
+                <Text style={styles.saveBtnText}>{loading ? "Chargement..." : "Enregistrer"}</Text>
               </TouchableOpacity>
             </View>
           </View>

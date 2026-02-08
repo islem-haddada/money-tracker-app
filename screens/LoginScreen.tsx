@@ -31,16 +31,15 @@ export default function LoginScreen() {
       return;
     }
     
+    console.log("Attempting login with:", email);
     setLoading(true);
     try {
-      const ok = await login(email, password);
+      const ok = await login(email.trim().toLowerCase(), password);
       if (ok) {
         router.replace({ pathname: "/(tabs)/home" } as any);
-      } else {
-        Alert.alert("Erreur de connexion", "Email ou mot de passe incorrect.");
       }
     } catch (err) {
-      Alert.alert("Erreur", "Une erreur est survenue lors de la connexion.");
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -48,7 +47,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -77,6 +76,8 @@ export default function LoginScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={true}
+                autoFocus={true}
               />
             </View>
 
@@ -87,6 +88,7 @@ export default function LoginScreen() {
                 placeholder="Mot de passe"
                 placeholderTextColor={isDarkMode ? "#555" : "#999"}
                 value={password}
+                editable={true}
                 onChangeText={setPassword}
                 secureTextEntry
               />
