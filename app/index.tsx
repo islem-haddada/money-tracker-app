@@ -4,20 +4,16 @@ import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 
 export default function Index() {
-  const { user, loading, setUser, setToken } = useAuth();
+  const { user, loading } = useAuth();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      // Auto-login with demo user for offline mode
-      const demoUser = { id: 1, email: "demo@localhost", name: "Demo User" };
-      setUser(demoUser);
-      setToken("demo-token-local");
-      setReady(true);
-    } else if (user) {
+    // Wait for auth to finish loading
+    // User is now auto-created in AuthContext if none exists
+    if (!loading) {
       setReady(true);
     }
-  }, [loading, user]);
+  }, [loading]);
 
   if (!ready) {
     return (

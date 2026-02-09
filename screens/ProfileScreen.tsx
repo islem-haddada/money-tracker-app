@@ -9,7 +9,7 @@ import { useFinance } from "../context/FinanceContext";
 import { useAppTheme } from "../context/ThemeContext";
 
 export default function ProfileScreen() {
-  const { user, logout, changePassword, updateProfile, deleteAccount, loading } = useAuth();
+  const { user, logout, changePassword, updateProfile, deleteAccount, loading, isOnline, syncWithServer } = useAuth();
   const { transactions, debts } = useFinance();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const router = useRouter();
@@ -251,6 +251,12 @@ export default function ProfileScreen() {
       </Modal>
 
       <LinearGradient colors={isDarkMode ? ["#1b5e20", "#000"] : ["#4caf50", "#1b5e20"]} style={styles.header}>
+        {/* Online Status Badge */}
+        <View style={[styles.onlineBadge, { backgroundColor: isOnline ? '#4caf50' : '#ff9800' }]}>
+          <Ionicons name={isOnline ? "cloud-done" : "cloud-offline"} size={14} color="#fff" />
+          <Text style={styles.onlineBadgeText}>{isOnline ? "En ligne" : "Hors ligne"}</Text>
+        </View>
+        
         <View style={styles.avatarContainer}>
           <Image
             source={{ 
@@ -326,6 +332,20 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sécurité & Compte</Text>
+          
+          {/* Sync Button */}
+          <TouchableOpacity 
+            style={[styles.menuItem, isDarkMode && styles.menuItemDark]} 
+            onPress={syncWithServer}
+          >
+            <View style={[styles.iconBox, { backgroundColor: isOnline ? "#e3f2fd" : "#fafafa" }]}>
+              <Ionicons name="sync-outline" size={20} color={isOnline ? "#2196f3" : "#9e9e9e"} />
+            </View>
+            <Text style={[styles.menuText, isDarkMode && styles.menuTextDark]}>
+              Synchroniser avec le serveur
+            </Text>
+            <View style={[styles.syncStatusDot, { backgroundColor: isOnline ? "#4caf50" : "#ff9800" }]} />
+          </TouchableOpacity>
           
           <TouchableOpacity style={[styles.menuItem, isDarkMode && styles.menuItemDark]} onPress={handleChangePassword}>
             <View style={[styles.iconBox, { backgroundColor: "#fff3e0" }]}>
@@ -598,5 +618,26 @@ const styles = StyleSheet.create({
   },
   textDark: {
     color: "#fff",
-  }
+  },
+  onlineBadge: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+    gap: 5,
+  },
+  onlineBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  syncStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
 });
