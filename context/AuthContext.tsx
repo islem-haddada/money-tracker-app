@@ -18,6 +18,8 @@ type AuthContextShape = {
   updateProfile: (name: string, email: string) => Promise<boolean>;
   deleteAccount: () => Promise<boolean>;
   logout: () => Promise<void>;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextShape | undefined>(undefined);
@@ -320,7 +322,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, changePassword, updateProfile, deleteAccount }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, changePassword, updateProfile, deleteAccount, setUser, setToken }}>
       {children}
     </AuthContext.Provider>
   );
